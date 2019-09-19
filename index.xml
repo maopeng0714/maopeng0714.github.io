@@ -55,8 +55,7 @@ Visualize(可视化)的精神就是把现有的工作流程视觉化，当作未
       <pubDate>Thu, 12 Sep 2019 00:00:00 +0000</pubDate>
       
       <guid>https://maopeng0714.github.io/posts/avro-kafka/</guid>
-      <description>Ref: https://www.confluent.io/blog/avro-kafka-data/
-What is Avro Avro is an open source data serialization system that helps with data exchange between systems, programming languages, and processing frameworks. &amp;lt;\br&amp;gt; Avro helps define a binary format for your data, as well as map it to the programming language of your choice. &amp;lt;\br&amp;gt;
+      <description>What is Avro Avro is an open source data serialization system that helps with data exchange between systems, programming languages, and processing frameworks. &amp;lt;\br&amp;gt; Avro helps define a binary format for your data, as well as map it to the programming language of your choice. &amp;lt;\br&amp;gt;
 Why Use Avro with Kafka Avro has a JSON like data model, but can be represented as either JSON or in a compact binary form.</description>
     </item>
     
