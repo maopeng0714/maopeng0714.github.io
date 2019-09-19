@@ -167,7 +167,7 @@ Avro helps define a binary format for your data, as well as map it to the progra
   &quot;time&quot;: 1424849130111,
   &quot;customer_id&quot;: 1234,
   &quot;product_id&quot;: 5678,
-  &quot;quantity&quot;:3,
+  &quot;quantity&quot;: 3,
   &quot;payment_type&quot;: &quot;mastercard&quot;
 }
 </code></pre>
@@ -176,18 +176,22 @@ Avro helps define a binary format for your data, as well as map it to the progra
 
 <pre><code class="language-json">{
   &quot;type&quot;: &quot;record&quot;,
-  &quot;doc&quot;:&quot;This event records the sale of a product&quot;,
+  &quot;doc&quot;: &quot;This event records the sale of a product&quot;,
   &quot;name&quot;: &quot;ProductSaleEvent&quot;,
-  &quot;fields&quot; : [
-    {&quot;name&quot;:&quot;time&quot;, &quot;type&quot;:&quot;long&quot;, &quot;doc&quot;:&quot;The time of the purchase&quot;},
-    {&quot;name&quot;:&quot;customer_id&quot;, &quot;type&quot;:&quot;long&quot;, &quot;doc&quot;:&quot;The customer&quot;},
-    {&quot;name&quot;:&quot;product_id&quot;, &quot;type&quot;:&quot;long&quot;, &quot;doc&quot;:&quot;The product&quot;},
-    {&quot;name&quot;:&quot;quantity&quot;, &quot;type&quot;:&quot;int&quot;},
-    {&quot;name&quot;:&quot;payment&quot;,
-     &quot;type&quot;:{&quot;type&quot;:&quot;enum&quot;,
-	           &quot;name&quot;:&quot;payment_types&quot;,
-             &quot;symbols&quot;:[&quot;cash&quot;,&quot;mastercard&quot;,&quot;visa&quot;]},
-     &quot;doc&quot;:&quot;The method of payment&quot;}
+  &quot;fields&quot;: [
+    { &quot;name&quot;: &quot;time&quot;, &quot;type&quot;: &quot;long&quot;, &quot;doc&quot;: &quot;The time of the purchase&quot; },
+    { &quot;name&quot;: &quot;customer_id&quot;, &quot;type&quot;: &quot;long&quot;, &quot;doc&quot;: &quot;The customer&quot; },
+    { &quot;name&quot;: &quot;product_id&quot;, &quot;type&quot;: &quot;long&quot;, &quot;doc&quot;: &quot;The product&quot; },
+    { &quot;name&quot;: &quot;quantity&quot;, &quot;type&quot;: &quot;int&quot; },
+    {
+      &quot;name&quot;: &quot;payment&quot;,
+      &quot;type&quot;: {
+        &quot;type&quot;: &quot;enum&quot;,
+        &quot;name&quot;: &quot;payment_types&quot;,
+        &quot;symbols&quot;: [&quot;cash&quot;, &quot;mastercard&quot;, &quot;visa&quot;]
+      },
+      &quot;doc&quot;: &quot;The method of payment&quot;
+    }
   ]
 }
 </code></pre>
@@ -215,9 +219,9 @@ Avro helps define a binary format for your data, as well as map it to the progra
         <div class="pagination__buttons">
           
             <span class="button previous">
-              <a href="https://maopeng0714.github.io/posts/kanban/">
+              <a href="https://maopeng0714.github.io/posts/kanban-introduction/">
                 <span class="button__icon">←</span>
-                <span class="button__text">Kanban Introduction</span>
+                <span class="button__text">Kanban 方法</span>
               </a>
             </span>
           

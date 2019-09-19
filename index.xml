@@ -6,18 +6,47 @@
     <description>Recent content on Peng Mao&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 16 Sep 2019 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 18 Sep 2019 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="https://maopeng0714.github.io/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>Kanban Introduction</title>
-      <link>https://maopeng0714.github.io/posts/kanban/</link>
-      <pubDate>Mon, 16 Sep 2019 00:00:00 +0000</pubDate>
+      <title>Kanban 与 Scrum 孰优孰劣</title>
+      <link>https://maopeng0714.github.io/posts/kanban-vs-scrum/</link>
+      <pubDate>Wed, 18 Sep 2019 00:00:00 +0000</pubDate>
       
-      <guid>https://maopeng0714.github.io/posts/kanban/</guid>
-      <description></description>
+      <guid>https://maopeng0714.github.io/posts/kanban-vs-scrum/</guid>
+      <description>许多 Scrum 团队还使用看板作为可视化流程和项目管理工具。虽然有些团队更喜欢仅使用 Scrum，因为它具有规范性（模糊性较低），但许多 Scrum 团队采用了看板的选择原则， 这些原则 对于为项目添加额外的可见性层非常有用。在 Kanban 或 Scrum 之间进行选择时，并不总是需要进行个体区分，因为看板和 Scrum 可以齐头并进。
+哪种工作方法效果最好的问题并不容易，但是许多 Scrum 和非 Scrum 团队采用看板方法来可视化他们的工作。
+Kanban 与 Scrum Scrum 和 Kanban 都是迭代工作方法，依赖于流程，旨在减少浪费。然而; 两者之间存在一些主要差异：
+    Kanban Scrum     角色和责任 团队没有预定义的角色。虽然可能仍然有项目经理。 每个团队成员都有一个预定义的角色，Scrum 主管指定时间表，产品负责人定义目标和目标，团队成员执行工作。   到期日/交付时间表 产品或者服务可以根据优先级连续交付。 产品或服务的可交付日期由冲刺周期决定。   优先级 使用“拉动系统”或流程，团队成员在完成上一个任务再“拉”取新任务。 也使用“拉动系统”，但是每次迭代都会拉动整个批次。   变更 允许按照需求变化修改任务内容或任务次序，强调适应变化。 强烈建议不要在冲刺周期内更改任务优先级或者范围，添加任务或者删除任务需要整体重新规划进行平衡。   生产效率 使用“周期时间”或从开始到结束完成项目所花费的时间来衡量生产率。 通过迭代的任务流通速率来衡量生产率。   最适合 最适合优先级和需求快速变化或者差异大的团队。 最适合需求范围和任务优先级比较稳定的团队。    在 Scrum 中，根据项目计划，所有活动都以相同的节奏发生。 每个人都认同一个更大的目标，这个目标被分解为多个迭代才能完成。团队以循环方式执行相同的活动集，或以规定的方式执行迭代。这有时很好，但如果有延迟，整个项目可能会停止或者不能达到预期目标。</description>
+    </item>
+    
+    <item>
+      <title>Kanban 方法</title>
+      <link>https://maopeng0714.github.io/posts/kanban-introduction/</link>
+      <pubDate>Wed, 18 Sep 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://maopeng0714.github.io/posts/kanban-introduction/</guid>
+      <description>在现在敏捷当道的世代里，大家对于 Kanban(以下简称看板)来做为项目管理的方法，一定是不陌生，但实际上看板方法并非只是透过看板的形式，来提示团队工作阶段与任务，其中还蕴含了许多相当大的管理学问。
+身为工程师一定常常在工作时被解不完的 BUG 淹没，而 PM 一定也面对过排山倒海的需求，搞得筋疲力尽，而这些心声也是看板方法之父 David J. Anderson 心中想要达成的目标，如何在有限的资源下，以一种稳定的节奏来完成开发的工作，并且将工作流(flow)给定义出来，只有把这些基础给打好，未来才有流程改善的依据可以遵循，而市面上也有许多软件是使用看板方法来把每一个工作项目视觉化，但在了解工具前，我们应该要先学习使用看板管理法的核心理念。
+Kanban 的 wiki 定义如下：
+看板管理，常作“Kanban 管理”（来自日语“看板”，カンバン，日语罗马拼写：Kanban），是丰田生产模式中的重要概念，指为了达到及时生产（JIT）方式控制现场生产流程的工具。及时生产方式中的拉式生产系统可以使信息的流程缩短，并配合定量、固定装货容器等方式，而使生产过程中的物料流动顺畅。
+在看板标示系统中常将塑料或纸制成薄板，将产品名称及数量写于其上，故此得名。及时生产方式的看板在生产线上分为两类：领取看板和生产看板，旨在传达的信息是：“何物，何时，生产多少数量，以何方式生产、搬运”。
+看板的具体信息包括：零件号码、品名、制造编号、容器形式、容器容量、发出看板编号、移往地点、零件外观等。
+看板的六种核心方法  Visualize (可视化)
+ Limit WIP (限制 WIP)
+ Manage flow (管理工作流)
+ Make policies explicit (定义工作流)
+ Implement feedback loops (落实回馈)
+ Improve collaboratively, evolve experimentally (改善合作)
+  一、可视化 如何有效把现有流程视觉化，并且改善他!
+Visualize(可视化)的精神就是把现有的工作流程视觉化，当作未来改善的基础，而切记一定要使用&amp;rdquo;现有&amp;rdquo;的流程，才能取得每一个团队成员的共识，这样的改善才能彰显意义，若是把&amp;rdquo;你期待的流程&amp;rdquo;加在看板中，但事实上在实务经验里却没有发生过，那我想这样的看板不仅不能反映现况，更没有改善的意义。
+假设我们有一组原子笔的生产线，并且只有 3 个成员来维持产线的运作，分别是领料(领取原子笔的原件)、组装(把他们组起来)与贴标签(单纯贴上)，如下图所示，并且定义每一个人&amp;rdquo;同时&amp;rdquo;都只能做一件事情，定义好工作之后大家就可以动工啦!
+一般传统的生产线，就是当一位 A 完成作业后，马上把半成品移至下一个制程里，如果今天大家在工作上的难易度都雷同相当，那应该可以培养出一种稳定产出的节奏。
+如下:
+其中表格上的时间表示每一阶段作业所需耗费的工时，从我们这次的举例来说，我们可以明显的看出 B 成员的工作不仅较为繁复，工作上所耗需的工时也较 A 和 C 高出许多，在传统的产线方式中，到最后我们会发现几乎大多的半成品都会阻塞在 B 的制程内，而做不完的那些半成品，如果今天有时效上的限制，那这样的产线运作最后也只会造成不必要的浪费。</description>
     </item>
     
     <item>
