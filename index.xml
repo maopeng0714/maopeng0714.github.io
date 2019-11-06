@@ -6,10 +6,25 @@
     <description>Recent content on Peng Mao&#39;s Blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 18 Sep 2019 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 15 Oct 2019 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="https://maopeng0714.github.io/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>高可用K8S集群部署</title>
+      <link>https://maopeng0714.github.io/posts/ha-k8s-cluster-deploy-practice/</link>
+      <pubDate>Tue, 15 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://maopeng0714.github.io/posts/ha-k8s-cluster-deploy-practice/</guid>
+      <description>安装配置虚拟机  下载Virtual Box 和 CentOS 镜像。 下载CentOS 7任意镜像版本，注意不要下载CentOS 8，有兼容性问题。 软件包选择Infrustructure Server, 虽然不带图形界面节省空间但是也带有必要的组件。 配置yum源
+wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo yum makecache yum update  关闭、禁用防火墙：
+systemctl stop firewalld systemctl disable firewalld  禁用SELINUX： 只有执行这一操作之后，容器才能访问宿主的文件系统，进而能够正常使用 Pod 网络。您必须这么做，直到 kubelet 做出升级支持 SELinux 为止
+setenforce 0  关闭Swap
+- swapoff -a可临时关闭，但系统重启后恢复 - 编辑/etc/fstab，注释掉包含swap的那一行即可，重启后可永久关闭，如下所示：  设置主机名
+- hostname kube-master 临时改变 - 编辑/etc/hosts 文件 - 编辑 /etc/sysconfig/network 加入hostname   设置虚拟机网络  VirtualBox的5种连接方式
+ NAT ：虚拟机之间不能互通 NAT网络 ：本文对象 桥接 ：一般情况下虚拟机无法设置静态IP，并且浪费外部局域网IP 内部 ：虚拟机不能连外网 仅主机(host-only) ：虚拟机不能连外网，并且不互通  NAT网络面向需求</description>
+    </item>
     
     <item>
       <title>Kanban 与 Scrum 孰优孰劣</title>

@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+      <title>高可用K8S集群部署 :: Peng Mao&#39;s Blog — collection and records of learn path</title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="description" content="安装配置虚拟机  下载Virtual Box 和 CentOS 镜像。 下载CentOS 7任意镜像版本，注意不要下载CentOS 8，有兼容性问题。 软件包选择Infrustructure Server, 虽然不带图形界面节省空间但是也带有必要的组件。 配置yum源
+wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo yum makecache yum update  关闭、禁用防火墙：
+systemctl stop firewalld systemctl disable firewalld  禁用SELINUX： 只有执行这一操作之后，容器才能访问宿主的文件系统，进而能够正常使用 Pod 网络。您必须这么做，直到 kubelet 做出升级支持 SELinux 为止
+setenforce 0  关闭Swap
+- swapoff -a可临时关闭，但系统重启后恢复 - 编辑/etc/fstab，注释掉包含swap的那一行即可，重启后可永久关闭，如下所示：  设置主机名
+- hostname kube-master 临时改变 - 编辑/etc/hosts 文件 - 编辑 /etc/sysconfig/network 加入hostname   设置虚拟机网络  VirtualBox的5种连接方式
+ NAT ：虚拟机之间不能互通 NAT网络 ：本文对象 桥接 ：一般情况下虚拟机无法设置静态IP，并且浪费外部局域网IP 内部 ：虚拟机不能连外网 仅主机(host-only) ：虚拟机不能连外网，并且不互通  NAT网络面向需求"/>
+<meta name="keywords" content=""/>
+<meta name="robots" content="noodp"/>
+<link rel="canonical" href="https://maopeng0714.github.io/posts/ha-k8s-cluster-deploy-practice/" />
+
+
+
+
+
+<link rel="stylesheet" href="https://maopeng0714.github.io/assets/style.css">
+
+
+<link rel="stylesheet" href="https://maopeng0714.github.io/style.css">
+
+
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://maopeng0714.github.io/img/apple-touch-icon-144-precomposed.png">
+<link rel="shortcut icon" href="https://maopeng0714.github.io/img/favicon.png">
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="高可用K8S集群部署"/>
+<meta name="twitter:description" content="详细讲解怎么在自己的电脑上搭建起利用HAPROXY&#43;KEEPALIVED的高可用K8S集群"/>
+
+
+
+<meta property="og:title" content="高可用K8S集群部署" />
+<meta property="og:description" content="详细讲解怎么在自己的电脑上搭建起利用HAPROXY&#43;KEEPALIVED的高可用K8S集群" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://maopeng0714.github.io/posts/ha-k8s-cluster-deploy-practice/" />
+<meta property="article:published_time" content="2019-10-15T00:00:00+00:00" />
+<meta property="article:modified_time" content="2019-10-15T00:00:00+00:00" /><meta property="og:site_name" content="Peng Mao&#39;s Blog" />
+
+
+
+
+
+
+  </head>
+  <body class="dark-theme">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a href="/img/hello.jpg" class="logo" style="text-decoration: none;">
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
+</svg>
+</span>
+    <span class="logo__text">hello friend</span>
+    <span class="logo__cursor"></span>
+  
+</a>
+
+    <span class="header__right">
+      
+        <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/blogs">Blogs</a></li>
+        
+      
+      
+    
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/blogs">Blogs</a></li>
+      
+    
+  </ul>
+</nav>
+
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none"/>
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg class="theme-toggler" width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"/>
+</svg>
+
+      </span>
+    </span>
+  </span>
+</header>
+
+
+      <div class="content">
+        
+  <div class="post">
+    <h2 class="post-title"><a href="https://maopeng0714.github.io/posts/ha-k8s-cluster-deploy-practice/">高可用K8S集群部署</a></h2>
+    <div class="post-meta">
+      
+        <span class="post-date">
+            2019-10-15
+        </span>
+      
+      <span class="post-author">— Write by Peng Mao</span>
+      
+        <span class="post-read-time">— 6 min read</span>
+      
+    </div>
+
+    
+
+    
+
+    <div class="post-content">
+      
+
+<h4 id="安装配置虚拟机">安装配置虚拟机</h4>
+
+<ul>
+<li>下载Virtual Box 和 CentOS 镜像。</li>
+<li>下载CentOS 7任意镜像版本，注意不要下载CentOS 8，有兼容性问题。</li>
+<li>软件包选择Infrustructure Server, 虽然不带图形界面节省空间但是也带有必要的组件。</li>
+
+<li><p>配置yum源</p>
+
+<pre><code class="language-bash">wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+yum makecache
+yum update
+</code></pre></li>
+
+<li><p>关闭、禁用防火墙：</p>
+
+<pre><code class="language-bash">systemctl stop firewalld
+systemctl disable firewalld
+</code></pre></li>
+
+<li><p>禁用SELINUX：
+只有执行这一操作之后，容器才能访问宿主的文件系统，进而能够正常使用 Pod 网络。您必须这么做，直到 kubelet 做出升级支持 SELinux 为止</p>
+
+<pre><code class="language-bash">setenforce 0
+</code></pre></li>
+
+<li><p>关闭Swap</p>
+
+<pre><code class="language-bash">- swapoff -a可临时关闭，但系统重启后恢复
+- 编辑/etc/fstab，注释掉包含swap的那一行即可，重启后可永久关闭，如下所示：
+</code></pre></li>
+
+<li><p>设置主机名</p>
+
+<pre><code class="language-bash">- hostname kube-master 临时改变
+- 编辑/etc/hosts 文件
+- 编辑 /etc/sysconfig/network 加入hostname
+</code></pre></li>
+</ul>
+
+<h4 id="设置虚拟机网络">设置虚拟机网络</h4>
+
+<ol>
+<li><p>VirtualBox的5种连接方式</p>
+
+<ul>
+<li>NAT ：虚拟机之间不能互通</li>
+<li>NAT网络 ：本文对象</li>
+<li>桥接 ：一般情况下虚拟机无法设置静态IP，并且浪费外部局域网IP</li>
+<li>内部 ：虚拟机不能连外网</li>
+<li>仅主机(host-only) ：虚拟机不能连外网，并且不互通</li>
+</ul></li>
+
+<li><p>NAT网络面向需求</p>
+
+<ul>
+<li>虚拟机可以连外网</li>
+<li>虚拟机与主机互通</li>
+<li>虚拟机与虚拟机互通</li>
+<li>虚拟机需要固定IP (防止意外)</li>
+<li>主机所在局域网的其他机器访问虚拟机</li>
+</ul></li>
+
+<li><p>NAT网络基本配置方法</p>
+
+<ul>
+<li>VB设置：添加NAT Network配置
+依次点击《VirtualBox》 -&gt; 《偏好设置》 -&gt; 《网络》 -&gt; 《NAT网络》 -&gt; 《+号》
+先可以采用默认配置，后面在依据需求配置《端口转发》的功能</li>
+<li>VB设置：选择虚拟机网络连接方式
+选中对应的虚拟机镜像，依次点击《设置》 -&gt; 《网络》 -&gt; 《连接方式》 -&gt; 选择《NAT 网络》，《界面名称》选择第1步中设置的对象</li>
+</ul></li>
+
+<li><p>编辑 /etc/sysconfig/network文件（主机名、默认网关、DNS）</p>
+
+<pre><code class="language-bash">  # Created by anaconda
+    NETWORKING=yes
+    DNS1=8.8.8.8
+    DNS2=8.8.4.4
+    HOSTNAME=kube-master
+</code></pre></li>
+
+<li><p>设置固定IP
+编辑 /etc/sysconfig/network-scripts/ifcfg-enp0s3（配置ip地址、网关、DNS）</p>
+
+<pre><code class="language-bash">    TYPE=&quot;Ethernet&quot;
+    PROXY_METHOD=none
+    BROWSER_ONLY=no
+    NM_CONTROLLED=no
+    BOOTPROTO=&quot;static&quot;
+    DEFROUTE=&quot;yes&quot;
+    IPV4_FAILURE_FATAL=&quot;no&quot;
+    NAME=&quot;enp0s3&quot;
+    DEVICE=&quot;enp0s3&quot;
+    ONBOOT=&quot;yes&quot;
+    IPADDR=&quot;10.0.2.10&quot;
+    NETMASK=&quot;255.255.255.0&quot;
+    GATEWAY=&quot;10.0.2.1&quot;
+
+</code></pre></li>
+
+<li><p>配置DNS解析， 编辑 /etc/resolve.conf</p>
+
+<pre><code class="language-bash">    # Generated by NetworkManager
+    nameserver 8.8.8.8
+    nameserver 8.8.4.4
+</code></pre></li>
+
+<li><p>重启网络服务</p>
+
+<pre><code class="language-bash"> systemctl restart network
+</code></pre></li>
+</ol>
+
+<h4 id="安装docker">安装Docker</h4>
+
+<p>注意安装k8s支持的版本匹配，不要太高</p>
+
+<ol>
+<li><p>安装必要的驱动</p>
+
+<pre><code class="language-bash">sudo yum install -y yum-utils device-mapper-persistent-data lvm2
+</code></pre></li>
+
+<li><p>添加软件源信息</p>
+
+<pre><code class="language-bash">sudo yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+</code></pre></li>
+
+<li><p>更新并安装 Docker-CE</p>
+
+<pre><code class="language-bash">sudo yum makecache fast
+yum list docker-ce.x86_64  --showduplicates |sort -r
+yum install -y --setopt=obsoletes=0 docker-ce-18.09.8-3.el7
+</code></pre></li>
+
+<li><p>开启Docker服务</p>
+
+<pre><code class="language-bash"># Setup daemon.
+cat &gt; /etc/docker/daemon.json &lt;&lt;EOF
+{
+&quot;exec-opts&quot;: [&quot;native.cgroupdriver=systemd&quot;],
+&quot;log-driver&quot;: &quot;json-file&quot;,
+&quot;log-opts&quot;: {
+&quot;max-size&quot;: &quot;100m&quot;
+},
+&quot;storage-driver&quot;: &quot;overlay2&quot;,
+&quot;storage-opts&quot;: [
+&quot;overlay2.override_kernel_check=true&quot;
+]
+}
+EOF
+sudo systemctl start docker
+sudo systemctl enable docker
+</code></pre></li>
+
+<li><p>可能碰到的问题</p></li>
+</ol>
+
+<p>如果报错说docker版本太高，卸载docker，选择合适的版本重装：</p>
+
+<pre><code class="language-bash">yum -y remove docker-ce.x86_64
+yum -y remove docker-ce-cli.x86_64
+yum -y remove containerd.io.x86_64
+rm -rf /var/lib/docker
+yum list docker-ce.x86_64  --showduplicates |sort -r
+yum install -y --setopt=obsoletes=0 docker-ce-18.09.8-3.el7
+systemctl start docker
+systemctl enable docker
+</code></pre>
+
+<h4 id="网桥配置">网桥配置</h4>
+
+<p>配置L2网桥在转发包时会被iptables的FORWARD规则所过滤，该配置被CNI插件需要</p>
+
+<pre><code class="language-bash">echo &quot;&quot;&quot;
+vm.swappiness = 0
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+&quot;&quot;&quot; &gt; /etc/sysctl.conf
+sysctl -p
+</code></pre>
+
+<h4 id="配置内核参数">配置内核参数</h4>
+
+<p>修复ipvs模式下长连接timeout问题 小于900即可</p>
+
+<pre><code class="language-bash"># https://github.com/moby/moby/issues/31208 
+# ipvsadm -l --timout
+cat &lt;&lt;EOF &gt; /etc/sysctl.d/k8s.conf
+net.ipv4.tcp_keepalive_time = 600
+net.ipv4.tcp_keepalive_intvl = 30
+net.ipv4.tcp_keepalive_probes = 10
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+net.ipv4.neigh.default.gc_stale_time = 120
+net.ipv4.conf.all.rp_filter = 0
+net.ipv4.conf.default.rp_filter = 0
+net.ipv4.conf.default.arp_announce = 2
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.all.arp_announce = 2
+net.ipv4.ip_forward = 1
+net.ipv4.tcp_max_tw_buckets = 5000
+net.ipv4.tcp_syncookies = 1
+net.ipv4.tcp_max_syn_backlog = 1024
+net.ipv4.tcp_synack_retries = 2
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.netfilter.nf_conntrack_max = 2310720
+fs.inotify.max_user_watches=89100
+fs.may_detach_mounts = 1
+fs.file-max = 52706963
+fs.nr_open = 52706963
+net.bridge.bridge-nf-call-arptables = 1
+vm.swappiness = 0
+vm.overcommit_memory=1
+vm.panic_on_oom=0
+EOF
+sysctl --system
+
+</code></pre>
+
+<h4 id="开启并加载ipvs模块">开启并加载IPVS模块</h4>
+
+<p>在所有的Kubernetes节点执行以下脚本（若内核大于4.19替换nf_conntrack_ipv4为nf_conntrack）:</p>
+
+<pre><code class="language-bash">cat &gt; /etc/sysconfig/modules/ipvs.modules &lt;&lt;EOF
+#!/bin/bash
+modprobe -- ip_vs
+modprobe -- ip_vs_rr
+modprobe -- ip_vs_wrr
+modprobe -- ip_vs_sh
+modprobe -- nf_conntrack_ipv4
+EOF
+#执行脚本
+chmod 755 /etc/sysconfig/modules/ipvs.modules &amp;&amp; bash /etc/sysconfig/modules/ipvs.modules &amp;&amp; lsmod | grep -e ip_vs -e nf_conntrack_ipv4
+#安装相关管理工具
+yum install ipset ipvsadm -y
+
+</code></pre>
+
+<h4 id="安装kubelet-kubeadm-kubectl">安装kubelet，kubeadm，kubectl</h4>
+
+<pre><code class="language-bash">#配置kubernetes.repo为阿里云
+cat &lt;&lt;EOF &gt; /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=http://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+gpgkey=http://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg  http://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+EOF
+
+yum install -y kubeadm-1.14.7-0 kubectl-1.14.7-0  kubelet-1.14.7-0  --setopt=obsoletes=0 --disableexcludes=kubernetes
+systemctl enable --now kubelet.service
+</code></pre>
+
+<h4 id="配置kubelet">配置kubelet</h4>
+
+<p>确保docker 的cgroup driver 和kubelet的cgroup driver一样：</p>
+
+<pre><code class="language-bash">docker info | grep -i cgroup
+
+vim /usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+vim /var/lib/kubelet/config.yaml
+
+vim /var/lib/kubelet/kubeadm-flags.env
+KUBELET_KUBEADM_ARGS=&quot;--network-plugin=cni --pod-infra-container-image=registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.1&quot;
+
+更新为 cgroupDriver: systemd
+
+vim /etc/sysconfig/kubelet
+KUBELET_EXTRA_ARGS= --runtime-cgroups=/systemd/system.slice
+
+systemctl daemon-reload
+systemctl restart kubelet
+</code></pre>
+
+<h4 id="复制虚拟机">复制虚拟机</h4>
+
+<p>将Master虚拟机复制两份，一个修改hostname 为kube-node1, 另一个为kube-node2.
+修改上面指定的的固定IP地址，防止冲突。</p>
+
+<h3 id="高可用集群部署">高可用集群部署</h3>
+
+<p>配置高可用（HA）Kubernetes集群，有以下两种可选的etcd拓扑：</p>
+
+<ul>
+<li>堆叠的etcd拓扑：集群master节点与etcd节点共存，etcd也运行在控制平面节点上</li>
+<li>外部etcd拓扑：使用外部etcd节点，etcd节点与master在不同节点上运行</li>
+</ul>
+
+<p>本次部署为了节省资源选择堆叠的etcd拓扑。
+并选择 haproxy+keepalived 作为负载均衡的方案，也安装在控制平面上。</p>
+
+<p>ＩＰ地址规划如下：</p>
+
+<ul>
+<li>kube-master  10.0.2.10</li>
+<li>kube-master2 10.0.2.11</li>
+<li>kube-master3 10.0.2.12。</li>
+</ul>
+
+<p>VIP 地址 10.0.2.100</p>
+
+<h4 id="安装-haproxy-keepalived">安装 haproxy+keepalived</h4>
+
+<p>yum install -y haproxy keepalived</p>
+
+<p>注： ３台master的 haproxy+keepalived 节点都需安装</p>
+
+<h4 id="配置-keepalived">配置 keepalived</h4>
+
+<p>router_id和virtual_router_id 用于标识属于该 HA 的 keepalived 实例，所有节点的值必须一致；
+backup的priority 的值必须小于 master 的值；</p>
+
+<pre><code class="language-bash">
+vim /etc/keepalived/keepalived.conf
+
+! Configuration File for keepalived
+
+global_defs {
+   router_id LVS_DEVEL
+}
+
+vrrp_instance VI_1 {
+    state MASTER
+    interface enp0s3
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+    virtual_ipaddress {
+        10.0.2.100/24
+    }
+}
+
+</code></pre>
+
+<p>其他主节点的keepalived配置文件基本一样，除了state，主节点配置为MASTER，备节点配置BACKUP，优化级参数priority，主节点设置最高，备节点依次递减。</p>
+
+<h4 id="配置-haproxy">配置 haproxy</h4>
+
+<p>2台节点的配置一样</p>
+
+<pre><code class="language-bash">vim /etc/haproxy/haproxy.cfg
+添加如下段落：
+global
+  log 127.0.0.1 local0 err
+  maxconn 4096
+  uid 99
+  gid 99
+  #daemon
+  nbproc 1
+  pidfile haproxy.pid
+
+defaults
+  mode http
+  log 127.0.0.1 local0 err
+  maxconn 4096
+  retries 3
+  timeout connect 5s
+  timeout client 30s
+  timeout server 30s
+  timeout check 2s
+
+listen admin_stats
+  mode http
+  bind 0.0.0.0:1080
+  log 127.0.0.1 local0 err
+  stats refresh 30s
+  stats uri     /haproxy-status
+  stats realm   Haproxy\ Statistics
+  stats auth    admin:admin
+  stats hide-version
+  stats admin if TRUE
+
+frontend k8s-https
+  bind 0.0.0.0:8443
+  mode tcp
+  #maxconn 4096
+  default_backend k8s-https
+
+backend k8s-https
+  mode tcp
+  balance roundrobin
+  server kube-master  10.0.2.10:6443 weight 1 maxconn 1000 check inter 2000 rise 2 fall 3
+  server kube-master2 10.0.2.11:6443 weight 1 maxconn 1000 check inter 2000 rise 2 fall 3
+
+</code></pre>
+
+<p>haproxy 在 1080 端口输出 status 信息；
+haproxy 监听所有接口的 8443 端口，该端口与环境变量 ${KUBE_APISERVER} 指定的端口必须一致；
+server 字段列出所有 kube-apiserver 监听的 IP 和端口；</p>
+
+<h4 id="启动-haproxy-keepalived">启动 haproxy+keepalived</h4>
+
+<p>2个节点都启动</p>
+
+<p>systemctl daemon-reload
+systemctl enable haproxy
+systemctl enable keepalived
+systemctl start haproxy
+systemctl start keepalived</p>
+
+<h4 id="k8s-主节点安装配置">K8S 主节点安装配置</h4>
+
+<p>导出默认配置并修改为需要的配置如下：
+kubeadm config print init-defaults &gt; kubeadm-config.yaml</p>
+
+<pre><code class="language-bash">apiVersion: kubeadm.k8s.io/v1beta1
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: abcdef.0123456789abcdef
+  ttl: 24h0m0s
+  usages:
+  - signing
+  - authentication
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: 10.0.2.10
+  bindPort: 6443
+nodeRegistration:
+  criSocket: /var/run/dockershim.sock
+  name: kube-master
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+---
+apiServer:
+  timeoutForControlPlane: 4m0s
+apiVersion: kubeadm.k8s.io/v1beta1
+certificatesDir: /etc/kubernetes/pki
+clusterName: kubernetes
+controlPlaneEndpoint: &quot;10.0.2.100:8443&quot;
+controllerManager: {}
+dns:
+  type: CoreDNS
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+imageRepository: registry.cn-hangzhou.aliyuncs.com/google_containers
+kind: ClusterConfiguration
+kubernetesVersion: v1.14.7
+networking:
+  dnsDomain: cluster.local
+  serviceSubnet: 10.96.0.0/12
+  podSubnet: 192.168.0.0/16
+scheduler: {}
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+featureGates:
+  SupportIPVSProxyMode: true
+mode: ipvs
+
+</code></pre>
+
+<h4 id="初始化第一个主节点">初始化第一个主节点</h4>
+
+<pre><code class="language-bash">kubeadm init --config=kubeadm-config-default.yaml --experimental-upload-certs
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+cat &lt;&lt; EOF &gt;&gt; ~/.bashrc
+export KUBECONFIG=/etc/kubernetes/admin.conf
+EOF
+source ~/.bashrc
+</code></pre>
+
+<h4 id="初始化calico网络">初始化Calico网络</h4>
+
+<pre><code class="language-bash">kubectl apply -f calico.yaml 
+
+修改Calico.yml保证如下几个选项：
+
+  # Disable IPIP
+  - name: CALICO_IPV4POOL_IPIP
+    value: &quot;off&quot;
+  # IP POOL
+  - name: CALICO_IPV4POOL_CIDR
+    value: &quot;192.168.0.0/16&quot;
+  # specify the NAT network card instead of the hostonly network card 
+  - name: IP_AUTODETECTION_METHOD
+    value: &quot;interface=enp0s3&quot;
+</code></pre>
+
+<h4 id="初始化其他主节点">初始化其他主节点</h4>
+
+<pre><code class="language-bash">kubeadm join 10.0.2.100:8443 --token abcdef.0123456789abcdef \
+    --discovery-token-ca-cert-hash sha256:e8f36e9f3092aad715913b0eaa6196ece15c57a98db740759332eabde220a03b \
+    --experimental-control-plane --certificate-key 120e900b1611e82fd43b1bbfb68e8bcabfecbd06f419f06badc2a9cc98a6ab56
+</code></pre>
+
+<h4 id="初始化工作节点">初始化工作节点</h4>
+
+<pre><code class="language-bash">kubeadm join 10.0.2.100:8443 --token abcdef.0123456789abcdef \
+    --discovery-token-ca-cert-hash sha256:e8f36e9f3092aad715913b0eaa6196ece15c57a98db740759332eabde220a03b
+</code></pre>
+
+<h4 id="将kubeconfig配置scp到其他所有节点">将kubeconfig配置SCP到其他所有节点</h4>
+
+<pre><code class="language-bash">scp /root/.kube/config   root@kube-master2:/root/.kube/config
+scp /root/.kube/config   root@kube-node1:/root/.kube/config
+scp /root/.kube/config   root@kube-node2:/root/.kube/
+</code></pre>
+
+<h3 id="安装metrics-server">安装Metrics Server</h3>
+
+<ol>
+<li>在master节点上，下载metric-server</li>
+</ol>
+
+<p>git clone <a href="https://github.com/kubernetes-incubator/metrics-server.git">https://github.com/kubernetes-incubator/metrics-server.git</a></p>
+
+<ol>
+<li><p>修改metrics-server/deploy/1.8+/metrics-server-deployment.yaml(一定要修改，源码有错误！！！)</p>
+
+<pre><code class="language-bash">vim metrics-server/deploy/1.8+/metrics-server-deployment.yaml
+//添加
+command:
+    - /metrics-server
+    - --kubelet-insecure-tls
+    - --kubelet-preferred-address-types=InternalIP 
+//修改
+imagePullPolicy: IfNotPresent
+</code></pre></li>
+
+<li><p>下载镜像并修改名字</p>
+
+<pre><code class="language-bash">#docker pull mirrorgooglecontainers/metrics-server-amd64:v0.3.1
+
+#docker tag   mirrorgooglecontainers/metrics-server-amd64:v0.3.1 k8s.gcr.io/metrics-server-amd64:v0.3.1
+</code></pre></li>
+
+<li><p>安装Metrics Server</p>
+
+<pre><code class="language-bash">#kubectl apply -f metrics-server/deploy/1.8+/
+</code></pre></li>
+
+<li><p>验证正常工作</p>
+
+<pre><code class="language-bash">#kubectl top nodes
+#kubectl top pods
+#kubectl get hpa
+</code></pre></li>
+</ol>
+
+<h3 id="安装配置dashboard">安装配置Dashboard</h3>
+
+<ul>
+<li><p>创建安全链接串</p>
+
+<pre><code class="language-bash">cd certs/
+openssl genrsa -des3 -passout pass:x -out dashboard.pass.key 2048
+openssl rsa -passin pass:x -in dashboard.pass.key -out dashboard.key
+# Writing RSA key
+rm dashboard.pass.key
+openssl req -new -key dashboard.key -out dashboard.csr
+openssl x509 -req -sha256 -days 365 -in dashboard.csr -signkey dashboard.key -out dashboard.crt
+
+kubectl create secret generic kubernetes-dashboard-certs --from-file=$HOME/certs -n kubernetes-dashboard
+</code></pre></li>
+
+<li><p>定制Dashboard权限</p></li>
+</ul>
+
+<p>下载<a href="https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta5/aio/deploy/recommended.yaml，并编辑修改。">https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta5/aio/deploy/recommended.yaml，并编辑修改。</a></p>
+
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubernetes-dashboard
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: kubernetes-dashboard
+    namespace: kube-system
+</code></pre>
+
+<ul>
+<li><p>安装Dashboard</p>
+
+<p>kubectl create -f recommended.yaml</p></li>
+
+<li><p>创建用户</p>
+
+<pre><code class="language-bash">apiVersion: v1
+kind: ServiceAccount
+metadata:
+name: admin-user
+namespace: kube-system
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+name: admin-user
+namespace: kube-system
+roleRef:
+apiGroup: rbac.authorization.k8s.io
+kind: ClusterRole
+name: cluster-admin
+subjects:
+- kind: ServiceAccount
+name: admin-user
+namespace: kube-system
+
+kubectl apply -f admin-user-user.yaml
+
+</code></pre></li>
+
+<li><p>获取token
+kubectl -n kube-system get sa | grep admin-user
+kubectl describe secrets/admin-user-token-n7grp -n kube-system</p>
+
+<pre><code class="language-bash">Name:         admin-user-token-n7grp
+Namespace:    kube-system
+Labels:       &lt;none&gt;
+Annotations:  kubernetes.io/service-account.name: admin-user
+          kubernetes.io/service-account.uid: 38b70ad4-f227-11e9-84c3-08002790da0d
+
+Type:  kubernetes.io/service-account-token
+
+Data
+====
+ca.crt:     1025 bytes
+namespace:  11 bytes
+token:      eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi11c2VyLXRva2VuLW43Z3JwIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImFkbWluLXVzZXIiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIzOGI3MGFkNC1mMjI3LTExZTktODRjMy0wODAwMjc5MGRhMGQiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6a3ViZS1zeXN0ZW06YWRtaW4tdXNlciJ9.t9mOEiRSCzPxsVrirTitP9lpta2ujOkVHYHh06-dl8yjubgqxa1d8oDJASZXlbXM1WjXl2K93Q7OCH7rLmklhCRGXtNEEjvCUaWYm4haP8jZFqujQ6XtGiQ7aExPaoshVMwT7lttrZT1ZwZ93RXdaZyPd-QMkiBOkdt47J8Q6MG7rbmPTjzgmRa3KV3oY_ST_0h-Bb9FiMBCfr70wNB5Xj3W6kilKuabgnrNec3GscdwJrzxYY-y2YCd2wcjek49Wc9d8vp4CG4I5-ywWcLKgEXuYb4Ye3tBT3d0uUQdFgwuXPLpCq1h-RJTYmwJuld9-a4DPpOQJZHdnRkZcA4UgA
+</code></pre></li>
+
+<li><p>使用kubectl proxy启动DashBoard</p></li>
+</ul>
+
+<p>kubectl proxy &ndash;address=&lsquo;10.0.2.10&rsquo; &ndash;disable-filter=true</p>
+
+<ul>
+<li>登录Dashboard
+在VirtualBox的全局设置里，NAT网络设置端口映射，把本机的9001端口映射到10.0.2.10的8001端口。
+在本机输入URL：
+<a href="http://localhost:9001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/clusterrole?namespace=default">http://localhost:9001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/clusterrole?namespace=default</a></li>
+</ul>
+
+<h3 id="helm-安装配置">HELM 安装配置</h3>
+
+<p>下载</p>
+
+<p>helm releases 版本下载地址：<a href="https://github.com/helm/helm/releases">https://github.com/helm/helm/releases</a></p>
+
+<ol>
+<li>解压并拷贝</li>
+</ol>
+
+<p>tar -xzvf helm-v2.13.1-linux-amd64.tar.gz
+cd linux-amd64 &amp;&amp; mv helm /usr/bin/</p>
+
+<p>压缩中包含两个可执行文件helm,tiller。其中tiller为server，若采用容器化部署到kubernetes中，则可以不用管tiller，只需将helm复制到/usr/bin目录即可。</p>
+
+<ol>
+<li>创建tiller用户</li>
+</ol>
+
+<p>kubectl create serviceaccount &ndash;namespace kube-system tiller
+kubectl create clusterrolebinding tiller-cluster-rule &ndash;clusterrole=cluster-admin &ndash;serviceaccount=kube-system:tiller</p>
+
+<ol>
+<li>安装Tiller</li>
+</ol>
+
+<p>helm init &ndash;service-account tiller -i registry.cn-hangzhou.aliyuncs.com/google_containers/tiller:v2.13.1  &ndash;skip-refresh</p>
+
+<ol>
+<li>问题解决</li>
+</ol>
+
+<p>unable to do port forwarding: socat not found.</p>
+
+<p>解决办法在node节点安装socat</p>
+
+<p>yum install socat</p>
+
+<ol>
+<li>卸载
+helm reset将会移除tiller在k8s集群上创建的pod
+当出现上面的context deadline exceeded时, helm reset同样会报该错误.执行</li>
+</ol>
+
+<p>heml reset -f
+强制删除k8s集群上的pod.
+当要移除helm init创建的目录等数据时,执行</p>
+
+<p>helm reset &ndash;remove-helm-home</p>
+
+<h3 id="定制安装istio">定制安装Istio</h3>
+
+<ol>
+<li>Create a namespace for the istio-system components:</li>
+</ol>
+
+<p>$ kubectl create namespace istio-system</p>
+
+<ol>
+<li>下载istio： <a href="https://istio.io/docs/setup/#downloading-the-release">https://istio.io/docs/setup/#downloading-the-release</a></li>
+</ol>
+
+<p>切换到istio目录下面，并编辑values文件来定制所需要的参数：
+vim  install/kubernetes/helm/istio/values.yaml</p>
+
+<ol>
+<li>初始化CRD资源</li>
+</ol>
+
+<p>[root@kube-master2 istio-1.3.1]# helm template install/kubernetes/helm/istio-init -name istio-init -namespace istio-system &gt; istio-init.yaml
+[root@kube-master2 istio-1.3.1]# kubectl apply -f istio-init.yaml</p>
+
+<ol>
+<li>安装Istio</li>
+</ol>
+
+<p>注意：发现istio 1.3.1版本和 Helm 2.15.0 版本存在兼容性问题，需要使用helm 2.13.1 版本</p>
+
+<p>helm template install/kubernetes/helm/istio &ndash;name istio &ndash;namespace istio-system &gt; istio-default.yaml
+kubectl apply -f istio-default.yaml</p>
+
+<ol>
+<li>验证Istio安装：
+kubectl get svc -n istio-system
+kubectl get pods -n istio-system</li>
+</ol>
+
+<p>给Namespace打标签，这样每次部署自动的就会注入Envoy Sidecar。
+kubectl label namespace <namespace> istio-injection=enabled
+kubectl create -n <namespace> -f <your-app-spec>.yaml</p>
+
+<ol>
+<li>卸载</li>
+</ol>
+
+<p>helm template install/kubernetes/helm/istio &ndash;name istio &ndash;namespace istio-system | kubectl delete -f -
+或者 kubectl delete -f istio-default.yaml</p>
+
+<p>kubectl delete namespace istio-system</p>
+
+<ol>
+<li>从本机访问Grafana</li>
+</ol>
+
+<p>kubectl -n istio-system port-forward &ndash;address 10.0.2.11  pod/grafana-6fc987bd95-8j2pt  3000:3000 &amp;</p>
+
+<p>localhost:3000</p>
+
+    </div>
+    
+      <div class="pagination">
+        <div class="pagination__title">
+          <span class="pagination__title-h">Read other posts</span>
+          <hr />
+        </div>
+        <div class="pagination__buttons">
+          
+          
+            <span class="button next">
+              <a href="https://maopeng0714.github.io/posts/kanban-vs-scrum/">
+                <span class="button__text">Kanban 与 Scrum 孰优孰劣</span>
+                <span class="button__icon">→</span>
+              </a>
+            </span>
+          
+        </div>
+      </div>
+    
+
+    <div id="disqus_thread"></div>
+<script>
+
+
+
+
+
+(function() { 
+var d = document, s = d.createElement('script');
+s.src = 'https://www-maopeng-net.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+
+
+    </div>
+
+      </div>
+
+      
+        <footer class="footer">
+  <div class="footer__inner">
+    
+      <a href="/img/hello.jpg" class="logo" style="text-decoration: none;">
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367"/>
+</svg>
+</span>
+    <span class="logo__text">hello friend</span>
+    <span class="logo__cursor"></span>
+  
+</a>
+
+      <div class="copyright">
+        <span>© 2019 Powered by <a href="https://gohugo.io" target="_blank" rel="noopener">Hugo</a></span>
+        <span>Theme created by <a href="https://twitter.com/panr" target="_blank" rel="noopener">panr</a></span>
+      </div>
+    
+  </div>
+</footer>
+
+<script src="https://maopeng0714.github.io/assets/main.js"></script>
+<script src="https://maopeng0714.github.io/assets/prism.js"></script>
+
+
+      
+    </div>
+
+    
+  </body>
+</html>
